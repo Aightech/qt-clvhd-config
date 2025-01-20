@@ -125,7 +125,10 @@ class MainWindow : public QMainWindow
     std::chrono::time_point<std::chrono::system_clock> m_start_time;
     sec m_duration;
 
-    QCustomPlot *m_plot;
+    QCustomPlot *m_plot=nullptr;
+    double m_prev_val = 0;
+
+
     int m_plot_t_max = 5;
     //queue of the raw data
     std::vector<std::queue<float>> m_raw_data;

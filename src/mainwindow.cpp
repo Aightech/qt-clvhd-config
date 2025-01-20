@@ -169,11 +169,14 @@ MainWindow::connection()
     qDebug() << ui->pushButton_logo->size();
     ui->pushButton_connect->setDisabled(true);
     ui->lineEdit_pathdev->setDisabled(true);
-    m_master.open_connection(Communication::Client::SERIAL,
-                             ui->lineEdit_pathdev->text()
-                                 .toStdString()
-                                 .c_str()); //"192.168.127.253",5000);
-    // ui->lineEdit_pathdev->text().toStdString().c_str());
+    m_master.open_connection(ui->lineEdit_pathdev->text().toStdString().c_str(),
+                             500000, O_RDWR | O_NOCTTY);
+    // .open_connection("/dev/ttyACM0", 500000, O_RDWR | O_NOCTTY);
+    //     Communication::Client::SERIAL,
+    //                          ui->lineEdit_pathdev->text()
+    //                              .toStdString()
+    //                              .c_str()); //"192.168.127.253",5000);
+    // // ui->lineEdit_pathdev->text().toStdString().c_str());
 
     m_nb_board = m_master.setup();
     for(int i = 0; i < m_nb_board; i++) { this->addBoard(i + 1); }
@@ -212,8 +215,6 @@ MainWindow::connection()
     ui->spinBox_board_id->setMaximum(m_nb_board);
 
     this->update_indiv_param();
-
-    
 }
 
 void
@@ -441,10 +442,9 @@ MainWindow::upload()
     for(int i = 0; i < 3 * m_boardItem.size(); i++)
     {
         m_plot->addGraph();
-        QColor color = QColor::fromHsvF(
-            (double)i / (3 * m_boardItem.size()), 1, 0.75, 1);
-        m_plot->graph(i)->setPen(
-            QPen(color)); // line color blue for first grap
+        QColor color =
+            QColor::fromHsvF((double)i / (3 * m_boardItem.size()), 1, 0.75, 1);
+        m_plot->graph(i)->setPen(QPen(color)); // line color blue for first grap
 
         //add a item to treeWidget_data, set the first column to the channel id, and the second column with a square of the same color as the graph
         try
@@ -452,9 +452,7 @@ MainWindow::upload()
             QTreeWidgetItem *item = new QTreeWidgetItem(ui->treeWidget_data);
             item->setText(0, QString::number(i));
             item->setText(1, "");
-            item->setBackground(
-                1, m_plot->graph(i)->pen().color());
-
+            item->setBackground(1, m_plot->graph(i)->pen().color());
         }
         catch(...)
         {
@@ -519,7 +517,6 @@ MainWindow::upload()
     ui->lcdNumber_samplingRate->setSegmentStyle(QLCDNumber::Flat);
     ui->lcdNumber_resolution->setSegmentStyle(QLCDNumber::Flat);
     ui->lcdNumber_filteringFS->setSegmentStyle(QLCDNumber::Flat);
-
 }
 
 void
@@ -632,7 +629,7 @@ MainWindow::push_lsl()
             double fs = 1.0 / ((sec)(m_time - prev_time)).count();
             double alpha = 0.01;
             m_fs = alpha * fs + (1 - alpha) * m_fs;
-            
+
             //printf("sampling rate: %f                \xd", fs);
             m_t = ((sec)(m_time - m_start_time)).count();
 
@@ -652,8 +649,10 @@ MainWindow::push_lsl()
                         double v = (m_nb_bytes == 2)
                                        ? m_master.fast_EMG(i, j)
                                        : m_master.precise_EMG(i, j);
-                        double v_filtered =
-                            v; //10 * (sin(2 * M_PI * 50 * m_t) + sin(2 * M_PI * 10 * m_t) + sin(2 * M_PI * 100 * m_t)) +4;
+                        double v_filtered = v;
+                        //10 * (sin(2 * M_PI * 50 * m_t) + sin(2 * M_PI * 10 * m_t) + sin(2 * M_PI * 100 * m_t)) +4;
+                        // if(abs(v) > 5)
+                        //     v_filtered = m_prev_val;
                         if(m_filter_mode)
                             for(int k = 0; k < m_filter_checkboxes.size(); k++)
                                 if(m_filter_checkboxes[k]->isChecked())
@@ -671,6 +670,7 @@ MainWindow::push_lsl()
                                       100. +
                                   ui->horizontalSlider_zoomPlot->value() *
                                       v_filtered / 500)));
+                        m_prev_val = v_filtered;
                     }
                 }
             }
